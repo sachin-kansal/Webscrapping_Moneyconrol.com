@@ -7,12 +7,13 @@ def main():
     c_name=input("\nPlease enter the name of stock from above list:")
 
     i=True
-    while i==True:
+    while i is True:
         if c_name not in Moneycontrol.extractingurl().keys():
             print("please check the value belongs to the list and is correct")
             c_name=input("\nPlease enter the name of stock from above list:")
         else:
             Moneycontrol.get_scrapped_data(c_name)
+            print("\n to Quit enter Exit as Value")
             c_name=input("\nPlease enter the name of stock from above list:")
             
         if c_name=="Exit":
