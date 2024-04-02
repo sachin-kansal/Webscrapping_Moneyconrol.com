@@ -16,7 +16,7 @@ def main():
             print("\n to Quit enter Exit as Value")
             c_name=input("\nPlease enter the name of stock from above list:")
             
-        if c_name=="Exit":
+        if c_name=="Exit" or c_name=="exit" or c_name=="EXIT":
             i=False
 if __name__=="__main__":
     Moneycontrol.companylist()
