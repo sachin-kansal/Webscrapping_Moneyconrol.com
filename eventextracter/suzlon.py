@@ -3,10 +3,12 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 import datetime
 import time
+import pickle
 #mongo imports
 from pymongo.server_api import ServerApi
 from pymongo.mongo_client import MongoClient
-
+#kafka imports
+from kafka import KafkaProducer
 
 
 #<div id="nsecp" class="inprice1 nsecp" rel="42.55" data-numberanimate-value="42.55" data-numberanimate-characterheight="65" data-numberanimate-characterwidth="31" data-numberanimate-animationtimes="[10,0,10]" style="display: inline-block; vertical-align: top; height: 65px;"><div data-numberanimate-pos="2" style="width: 31px; height: 65px; overflow: hidden; display: inline-block;"><div style="backface-visibility: hidden; transform: translate3d(0px, -520px, 0px); transition: all 0ms ease-in-out 0s;">, . - + 0 1 2 3 4 5 6 7 8 9</div></div><div data-numberanimate-pos="1" style="width: 31px; height: 65px; overflow: hidden; display: inline-block;"><div style="backface-visibility: hidden; transform: translate3d(0px, -390px, 0px); transition: all 0ms ease-in-out 0s;">, . - + 0 1 2 3 4 5 6 7 8 9</div></div><div data-numberanimate-pos="0" style="width: 15px; height: 65px; overflow: hidden; display: inline-block;"><div style="backface-visibility: hidden; transform: translate3d(0px, -65px, 0px); transition: all 0ms ease-in-out 0s;">, . - + 0 1 2 3 4 5 6 7 8 9</div></div><div data-numberanimate-pos="-1" style="width: 31px; height: 65px; overflow: hidden; display: inline-block;"><div style="backface-visibility: hidden; transform: translate3d(0px, -585px, 0px); transition: all 0ms ease-in-out 0s;">, . - + 0 1 2 3 4 5 6 7 8 9</div></div><div data-numberanimate-pos="-2" style="width: 31px; height: 65px; overflow: hidden; display: inline-block;"><div style="backface-visibility: hidden; transform: translate3d(0px, -585px, 0px); transition: all 0ms ease-in-out 0s;">, . - + 0 1 2 3 4 5 6 7 8 9</div></div></div>
@@ -22,7 +24,7 @@ def eventminer(driver):
     price=soup.find("input",attrs={"id":"nsespotval"})
     extract_time=soup.find("p",attrs={"class":"nseasondate"})
 
-    return [price,change,extract_time]
+    return [str(price),str(change),str(extract_time)]
 """
 to write into file        
 def function2(a):
@@ -31,22 +33,26 @@ def function2(a):
     f.close()
 """
 
+
 #driver defination
 options = webdriver.ChromeOptions()
 options.add_argument('--ignore-certificate-errors')
 options.add_argument('--ignore-ssl-errors')
-driver = webdriver.Chrome()
+driver = webdriver.Chrome(options=options)
 
 
 #while loop to read data continously until kill manually
 i=True
 while(i==True):
     try:
-        currenthour = datetime.datetime.now().timetuple().tm_hour
-        while(i):
+        #key_serializer=lambda a : bytes(a,'utf8'),value_serializer=lambda a : bytearray(a,'utf8')
+        myeventproducer = KafkaProducer(bootstrap_servers="127.0.0.1:9093",key_serializer= lambda a : pickle.dumps(a),value_serializer=lambda a : pickle.dumps(a),acks=1)
+        while(myeventproducer.bootstrap_connected()):
             a = eventminer(driver)
-            time.sleep(5)
+            myeventproducer.send("suzlon.topic",a,a[-1])
     except(KeyboardInterrupt):
         i=False
         print("keyboard kills")
+        myeventproducer.close()
         driver.quit()
+        print("drivers and producer closed")
